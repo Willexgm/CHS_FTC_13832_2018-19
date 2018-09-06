@@ -29,24 +29,12 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-import com.qualcomm.robotcore.hardware.Gyroscope;
-import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
-
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-
-
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -62,31 +50,20 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-//reeeeeeeeeeeeee
 @TeleOp(name="Basic: Iterative OpMode", group="Iterative Opmode")
 @Disabled
-public class Iterative_Gyro_Opmode_Test extends OpMode
+public class Example_Iterative_Opmode extends OpMode
 {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftDrive = null;
     private DcMotor rightDrive = null;
-    private IntegratingGyroscope gyro;
-    private ModernRoboticsI2cGyro modernRoboticsI2cGyro;
-
-    boolean lastResetState = false;
-    boolean curResetState  = false;
-
-
 
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
-
-        ElapsedTime timer = new ElapsedTime();
-
         telemetry.addData("Status", "Initialized");
 
         // Initialize the hardware variables. Note that the strings used here as parameters
@@ -102,36 +79,6 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
 
         // Tell the driver that initialization is complete.
         telemetry.addData("Status", "Initialized");
-
-        // Get a reference to a Modern Robotics gyro object. We use several interfaces
-        // on this object to illustrate which interfaces support which functionality.
-        modernRoboticsI2cGyro = hardwareMap.get(ModernRoboticsI2cGyro.class, "gyro");
-        gyro = (IntegratingGyroscope)modernRoboticsI2cGyro;
-        // If you're only interested int the IntegratingGyroscope interface, the following will suffice.
-        // gyro = hardwareMap.get(IntegratingGyroscope.class, "gyro");
-        // A similar approach will work for the Gyroscope interface, if that's all you need.
-
-        // Start calibrating the gyro. This takes a few seconds and is worth performing
-        // during the initialization phase at the start of each opMode.
-        telemetry.log().add("Gyro Calibrating. Do Not Move!");
-        modernRoboticsI2cGyro.calibrate();
-
-        timer.reset();
-
-        while (modernRoboticsI2cGyro.isCalibrating())  {
-            telemetry.addData("calibrating", "%s", Math.round(timer.seconds())%2==0 ? "|.." : "..|");
-            telemetry.update();
-
-        }
-
-        telemetry.log().clear(); telemetry.log().add("Gyro Calibrated. Press Start.");
-        telemetry.clear(); telemetry.update();
-
-        // Wait for the start button to be presse
-        telemetry.log().clear();
-        telemetry.log().add("Press A & B to reset heading");
-
-
     }
 
     /*
@@ -139,7 +86,6 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
      */
     @Override
     public void init_loop() {
-
     }
 
     /*
@@ -155,28 +101,6 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
      */
     @Override
     public void loop() {
-
-        curResetState = (gamepad1.a && gamepad1.b);
-        if (curResetState && !lastResetState) {
-            modernRoboticsI2cGyro.resetZAxisIntegrator();
-        }
-        lastResetState = curResetState;
-
-        int rawX = modernRoboticsI2cGyro.rawX();
-        int rawY = modernRoboticsI2cGyro.rawY();
-        int rawZ = modernRoboticsI2cGyro.rawZ();
-        int heading = modernRoboticsI2cGyro.getHeading();
-        int integratedZ = modernRoboticsI2cGyro.getIntegratedZValue();
-
-        AngularVelocity rates = gyro.getAngularVelocity(AngleUnit.DEGREES);
-
-        double xRate = rates.xRotationRate;
-
-        telemetry.addLine().addData("dx", formatRate(((float) xRate)));
-
-
-
-
         // Setup a variable for each drive wheel to save power level for telemetry
         double leftPower;
         double rightPower;
@@ -186,22 +110,10 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
 
         // POV Mode uses left stick to go forward, and right stick to turn.
         // - This uses basic math to combine motions and is easier to drive straight.
-        double game_pad_left = gamepad1.left_stick_y;
-        double game_pad_right  =  gamepad1.right_stick_y;
-
-        double difference = game_pad_left-game_pad_right;
-
-        leftPower = game_pad_left;
-        rightPower = game_pad_right;
-
-
-
-
-
-
-
-        //leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
-        //rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
+        double drive = -gamepad1.left_stick_y;
+        double turn  =  gamepad1.right_stick_x;
+        leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
+        rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
 
         // Tank Mode uses one stick to control each wheel.
         // - This requires no math, but it is hard to drive forward slowly and keep straight.
@@ -222,10 +134,6 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
      */
     @Override
     public void stop() {
-    }
-
-    String formatRate(float rate) {
-        return String.format("%.3f", rate);
     }
 
 }
