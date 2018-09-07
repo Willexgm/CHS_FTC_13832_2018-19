@@ -129,7 +129,7 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
 
         // Wait for the start button to be presse
         telemetry.log().clear();
-        telemetry.log().add("Press A & B to reset heading");
+
 
 
     }
@@ -170,9 +170,9 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
 
         AngularVelocity rates = gyro.getAngularVelocity(AngleUnit.DEGREES);
 
-        double xRate = rates.xRotationRate;
+        double actual_turning_rate = rates.xRotationRate;
 
-        telemetry.addLine().addData("dx", formatRate(((float) xRate)));
+        telemetry.addLine().addData("dx", formatRate(((float) actual_turning_rate)));
 
 
 
@@ -181,18 +181,59 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
         double leftPower;
         double rightPower;
 
-        // Choose to drive using either Tank Mode, or POV Mode
-        // Comment out the method that's not used.  The default below is POV.
-
-        // POV Mode uses left stick to go forward, and right stick to turn.
-        // - This uses basic math to combine motions and is easier to drive straight.
         double game_pad_left = gamepad1.left_stick_y;
         double game_pad_right  =  gamepad1.right_stick_y;
 
         double difference = game_pad_left-game_pad_right;
 
-        leftPower = game_pad_left;
-        rightPower = game_pad_right;
+        double difference_threshold_stick_movement = .10;
+
+        if (difference < difference_threshold_stick_movement){
+            game_pad_left = game_pad_right;
+        }
+
+        double constant = 5;
+
+        double turning_rate_goal = difference*constant;
+
+        //If difference = positive, turn right, else turn left
+        double zero_threshold = .05;
+
+        if (((0-zero_threshold)<game_pad_left &&
+                (0+zero_threshold>game_pad_left)) &&
+                ((0-zero_threshold)<game_pad_right &&
+                (0+zero_threshold>game_pad_right))) {
+            game_pad_left = 0;
+            game_pad_right = 0;
+        }
+
+        double average = (game_pad_left+game_pad_right)/2;
+
+        //forward
+        if (game_pad_left>0 && game_pad_right >0) {
+            leftPower = average + turning_rate_goal;
+            rightPower = average - turning_rate_goal;
+        }
+        //backward
+        if (game_pad_left<0 && game_pad_right<0) {
+            leftPower = average - turning_rate_goal;
+            rightPower = average + turning_rate_goal;
+        }
+        //wheels in different directions
+        if (game_pad_left*game_pad_right<0) {
+            leftPower = turning_rate_goal;
+            rightPower = -turning_rate_goal;
+
+        }
+        //no movement
+        if (game_pad_left == 0 && game_pad_right == 0){
+            leftPower = 0;
+            rightPower = 0;
+        }
+        else {
+            leftPower = 0;
+            rightPower = 0;
+        }
 
 
 
@@ -200,15 +241,10 @@ public class Iterative_Gyro_Opmode_Test extends OpMode
 
 
 
-        //leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
-        //rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
 
-        // Tank Mode uses one stick to control each wheel.
-        // - This requires no math, but it is hard to drive forward slowly and keep straight.
-        // leftPower  = -gamepad1.left_stick_y ;
-        // rightPower = -gamepad1.right_stick_y ;
 
-        // Send calculated power to wheels
+        leftPower    = Range.clip(leftPower, -1.0, 1.0) ;
+        rightPower   = Range.clip(rightPower, -1.0, 1.0) ;
         leftDrive.setPower(leftPower);
         rightDrive.setPower(rightPower);
 
